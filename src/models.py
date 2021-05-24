@@ -4,8 +4,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import List, Dict, Union, Optional, Any, NamedTuple
 import bluetooth
-from device import Device
-from utils import createStandardLogger, Logger, DEBUG
+from src.device import Device
+from src.utils import createStandardLogger, Logger, DEBUG
 
 JSON = Dict[str, Any]
 logger: Logger = createStandardLogger('whackamole.models', DEBUG)
