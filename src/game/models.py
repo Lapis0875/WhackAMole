@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import List, Dict, Union, Optional, Any, NamedTuple
-import bluetooth
-from src.device import Device
+from typing import List, Dict, Optional, Any, NamedTuple
+import serial
 from src.utils import createStandardLogger, Logger, DEBUG
+from .device import Device
+from src.type_hints import JSON
 
-JSON = Dict[str, Any]
+
 logger: Logger = createStandardLogger('whackamole.models', DEBUG)
 
 
