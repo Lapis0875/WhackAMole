@@ -16,7 +16,7 @@ Each part of map is called 'tile' in below.
 345     ->      [0,1,2,...,7,8]
 012
 
-
+2. 
 """
 
 
