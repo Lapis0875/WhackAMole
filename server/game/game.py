@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from typing import List, Optional, Dict, Final, Any
-
-from . import parse
-from src.type_hints import JSON
+from itertools import chain
+from server.type_hints import JSON
 
 """
 Game Map Design
@@ -49,32 +48,30 @@ class GameClientData:
         Returns:
             GameClientData object.
         """
-        parsed: JSON = cls.parse(data)
-        return cls(**parsed)
+        raw_values: List[str] = data.split(DATA_SPLIT_CHAR)
 
-    @classmethod
-    def parse(cls, data: str) -> JSON:
-        data_raw: List[str] = data.split(DATA_SPLIT_CHAR)
-        data: JSON = {
-            'is_hit': bool(data_raw[0]),
-            'hit_index': int(data_raw[1]) if data_raw[1].isdigit() else None
-        }
-        return data
+        is_hit = bool(raw_values[0])
+        hit_index = int(raw_values[1]) if raw_values[1].isdigit() else -1
+
+        return cls(
+            is_hit,
+            hit_index
+        )
 
     def __init__(
             self,
             is_hit: bool,
-            hit_index: Optional[int]
+            hit_index: int
     ):
         self.is_hit: bool = is_hit
-        self.hit_index: Optional[int] = hit_index
+        self.hit_index: int = hit_index
 
     def serialize(self) -> str:
         return _serialize_data(self.is_hit, self.hit_index)
 
 
 class GameServerData:
-    targets: List[int]
+    map_data: List[List[int]]
 
     @classmethod
     def deserialize(cls, data: str) -> GameServerData:
@@ -84,13 +81,13 @@ class GameServerData:
         Data is split using char ';'
 
         Data Format:
-            "{targets};"
+            "s;{map_data};"
 
         Data args:
-            targets: list[int]
+            map_Data: string (length : 9)
                 index of tiles.
-                format : [index(, ...)]
-                example : [0, 1, 6]
+                format : 000000000
+                example : 003001005
 
 
         Args:
@@ -98,22 +95,28 @@ class GameServerData:
         Returns:
             GameServerData object.
         """
-        parsed = cls.parse(data)
-        return cls(**parsed)
+        raw_values: List[str] = data.split(DATA_SPLIT_CHAR)
 
-    @classmethod
-    def parse(cls, data: str) -> JSON:
-        data_raw: List[str] = data.split(DATA_SPLIT_CHAR)
-        data: JSON = {
-            'targets': parse.parse_list_expr(data_raw[0])
-        }
-        return data
+        # parse map_data
+        map_data: List[List[int]] = []
+        for i in range(3):
+            map_data.append([
+                int(raw_values[i]),
+                int(raw_values[i+1]),
+                int(raw_values[i+2])
+            ])
+
+        return cls(
+            map_data
+        )
 
     def __init__(
             self,
-            targets: List[int]
+            map_data: List[List[int]]
     ):
-        self.targets = targets
+        self.map_data = map_data
 
     def serialize(self):
-        return _serialize_data(self.targets)
+        return _serialize_data(
+            ''.join(map(str, chain(self.map_data)))
+        )
