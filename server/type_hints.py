@@ -1,5 +1,3 @@
-from typing import Callable, Any, Coroutine, Dict
+from typing import Callable, Any
 
-JSON = Dict[str, Any]
 Function = Callable[..., Any]
-CoroutineFunction = Callable[..., Coroutine]

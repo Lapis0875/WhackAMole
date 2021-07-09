@@ -1,3 +1,9 @@
+"""
+@Deprecated
+Legacy value parser. Currently, project uses built-in eval() function to parse string values into python object.
+"""
+
+
 from contextlib import suppress
 from typing import Final, List, Any, Tuple, Union
 

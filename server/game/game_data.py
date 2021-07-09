@@ -1,32 +1,29 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Final, Any
+from typing import List, Optional, Dict, Final, Any, ClassVar
 from itertools import chain
-from server.type_hints import JSON
-
-"""
-Game Map Design
----------------
-1. Map data.
-Whack A Mole has 3*3 size of map. This map is flatten into 1-dimensional array, and accessed using integer index.
-Each part of map is called 'tile' in below.
-
-678
-345     ->      [0,1,2,...,7,8]
-012
-
-2. 
-"""
 
 
 DATA_SPLIT_CHAR: Final[str] = ';'
 
-
-def _serialize_data(*data) -> str:
-    return DATA_SPLIT_CHAR.join(*data)
+_serialize_data = lambda *data: DATA_SPLIT_CHAR.join(data)
 
 
 class GameClientData:
+    """
+    Represents data sent from client (client -> server)
+
+    Structure:
+        c;(is_hit: boolean);(hit_index: integer[0~8])
+    """
+
+    # Class Constant
+    prefix: Final[ClassVar[str]] = 'c'
+
+    # Instance attribute
+    is_hit: bool
+    hit_index: Optional[int]
+
     @classmethod
     def deserialize(cls, data: str) -> GameClientData:
         """
@@ -35,7 +32,7 @@ class GameClientData:
         Data is split using char ';'
 
         Data Format:
-            "{is_hit};{hit_index};{"
+            "c;{is_hit};{hit_index}"
 
         Data Args:
             is_hit : bool
@@ -48,10 +45,10 @@ class GameClientData:
         Returns:
             GameClientData object.
         """
-        raw_values: List[str] = data.split(DATA_SPLIT_CHAR)
+        string_params: List[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['c', '(is_hit)', '(hit_index)'] -> 0번째에 들어있는
 
-        is_hit = bool(raw_values[0])
-        hit_index = int(raw_values[1]) if raw_values[1].isdigit() else -1
+        is_hit = eval(string_params[0])
+        hit_index = int(string_params[1]) if string_params[1].isdigit() else None
 
         return cls(
             is_hit,
@@ -67,10 +64,20 @@ class GameClientData:
         self.hit_index: int = hit_index
 
     def serialize(self) -> str:
-        return _serialize_data(self.is_hit, self.hit_index)
+        return DATA_SPLIT_CHAR.join((self.prefix, self.is_hit, self.hit_index))
 
 
 class GameServerData:
+    """
+    Represents data send to client (server -> client)
+
+    Structure:
+        s;(is_hit: boolean);(hit_index: integer[0~8])
+    """
+
+    # Class Constant
+    prefix: Final[ClassVar[str]] = 's'
+
     map_data: List[List[int]]
 
     @classmethod
@@ -81,11 +88,13 @@ class GameServerData:
         Data is split using char ';'
 
         Data Format:
-            "s;{map_data};"
+            "s;{map_data}"
 
         Data args:
-            map_Data: string (length : 9)
-                index of tiles.
+            map_data: string (length : 9)
+                Item info of each tile.
+                Item info is described using item's unique number.
+
                 format : 000000000
                 example : 003001005
 
@@ -95,15 +104,16 @@ class GameServerData:
         Returns:
             GameServerData object.
         """
-        raw_values: List[str] = data.split(DATA_SPLIT_CHAR)
+        data_args: List[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['s', '(map_data)'] -> ignore server data prefix(s) in index 0.
 
         # parse map_data
+        raw_map_string = data_args[0]
         map_data: List[List[int]] = []
-        for i in range(3):
+        for i in range(0, 8, step=3):
             map_data.append([
-                int(raw_values[i]),
-                int(raw_values[i+1]),
-                int(raw_values[i+2])
+                int(raw_map_string[i]),
+                int(raw_map_string[i+1]),
+                int(raw_map_string[i+2])
             ])
 
         return cls(

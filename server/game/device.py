@@ -58,7 +58,7 @@ class WhackAMoleClient(Device):
         Args:
             name (str) : name of the device.
             port (str) : port to connect.
-            player (server.game.gameobjects.Player) : player instance which is connected to this device.
+            player (server.game.game_object.Player) : player instance which is connected to this device.
         """
         super(WhackAMoleClient, self).__init__(name, port)
         self.player = player
