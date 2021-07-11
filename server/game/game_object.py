@@ -3,12 +3,15 @@ from __future__ import annotations
 import datetime
 import enum
 import serial
-from typing import Optional, Final
+from typing import Optional, Final, NamedTuple
 
 __all__ = (
     'PanelItem',
     'Player'
 )
+
+from server.game import GameClientData
+from server.game.device import WhackAMoleClient
 
 
 class PanelItem(enum.Enum):
@@ -74,23 +77,22 @@ class Player:
     Player object which indicates player who plays the game.
     """
 
-    serial_port: serial.Serial
+    client: WhackAMoleClient
     name: str
     session: GameSession
 
     def __init__(
             self,
-            serial_port: serial.Serial,
-            name: str,
+            client: WhackAMoleClient,
             session: GameSession
     ):
         """
 
-        :param serial_port: Serial port connected to this player.
-        :param name: Name of the player. ex) Player1, Player2, ...
+        :param client: WhackAMoleClient object connected to this player.
+        :param session: GameSession where player is registered.
         """
-        self.serial_port = serial_port
-        self.name = name
+        self.client = client
+        self.name = client.name
         self.session = session
         self.hp = MAX_HP
 
@@ -106,12 +108,22 @@ class Player:
             self.session.onPlayerDeath(self)
 
 
+class GameFlags(NamedTuple):
+    finished: bool
+
+    @classmethod
+    def initial(cls) -> GameFlags:
+        return cls(finished=False)
+
+
 class GameSession:
     """
     Game Session Object.
     """
 
     startedAt: datetime.datetime
+    players: list[Player]
+    flags: GameFlags
 
     def __init__(
             self,
@@ -119,10 +131,46 @@ class GameSession:
     ):
         self.startedAt = startedAt
         self.players = []
+        self.flags = GameFlags.initial()
+
+    # Event Handlers
 
     def onPlayerDeath(self, player: Player):
         """
         Player Death Event Handler
         :param player: player instance who died.
         """
+        # Since, currently the game has only two players, we can stop the game.
+        self.flags.finished = True
+
+    # Game Phase
+    def setup(self):
+        for client in WhackAMoleClient.search():
+            self.players.append(Player(client, self))
+
+    def waitForClientData(self) -> list[GameClientData]:
+        return list(map(
+            lambda p: GameClientData.deserialize(p.client.readline()),
+            self.players
+        ))
+
+    def draw(self):
+        """
+        Draw UI on screen.
+        """
+        # TODO : Implement UI.
         pass
+
+    def close(self):
+        """
+        Close the game session and upload data on raking (playtime, (Optional) score)
+        """
+        playtime = datetime.datetime.now(tz=self.startedAt.tzinfo) - self.startedAt
+
+    # Game Runner
+    def run(self):
+        self.setup()
+        while not self.flags.finished:
+            data = self.waitForClientData()
+
+            self.draw()

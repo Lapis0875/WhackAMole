@@ -45,7 +45,7 @@ class GameClientData:
         Returns:
             GameClientData object.
         """
-        string_params: List[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['c', '(is_hit)', '(hit_index)'] -> 0번째에 들어있는
+        string_params: list[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['c', '(is_hit)', '(hit_index)'] -> 0번째에 들어있는
 
         is_hit = eval(string_params[0])
         hit_index = int(string_params[1]) if string_params[1].isdigit() else None
@@ -78,7 +78,7 @@ class GameServerData:
     # Class Constant
     prefix: Final[ClassVar[str]] = 's'
 
-    map_data: List[List[int]]
+    map_data: list[list[int]]
 
     @classmethod
     def deserialize(cls, data: str) -> GameServerData:
@@ -104,11 +104,11 @@ class GameServerData:
         Returns:
             GameServerData object.
         """
-        data_args: List[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['s', '(map_data)'] -> ignore server data prefix(s) in index 0.
+        data_args: list[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['s', '(map_data)'] -> ignore server data prefix(s) in index 0.
 
         # parse map_data
         raw_map_string = data_args[0]
-        map_data: List[List[int]] = []
+        map_data: list[list[int]] = []
         for i in range(0, 8, step=3):
             map_data.append([
                 int(raw_map_string[i]),
@@ -122,11 +122,13 @@ class GameServerData:
 
     def __init__(
             self,
-            map_data: List[List[int]]
+            map_data: list[list[int]]
     ):
         self.map_data = map_data
 
     def serialize(self):
-        return _serialize_data(
-            ''.join(map(str, chain(self.map_data)))
-        )
+        # chain(iter[iter]) -> exhaust first iterable, then exhaust second iterable,
+        # and keep going until the last iterable is exhausted.
+        # chain(self.map_data) = [0, 1, 2] -> [3, 4, 5] -> [6, 7, 8]
+        return self.prefix + DATA_SPLIT_CHAR + DATA_SPLIT_CHAR.join(map(str, chain(self.map_data)))
+
