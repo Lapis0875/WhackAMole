@@ -21,11 +21,11 @@ class GameClientData:
     prefix: Final[ClassVar[str]] = 'c'
 
     # Instance attribute
-    is_hit: bool
-    hit_index: Optional[int]
+    isHit: bool
+    hitIndex: Optional[int]
 
     @classmethod
-    def deserialize(cls, data: str) -> GameClientData:
+    def deserialize(cls, data: str, player=None) -> GameClientData:
         """
         Parse client->server data into Python object.
 
@@ -37,7 +37,7 @@ class GameClientData:
         Data Args:
             is_hit : bool
                 boolean value which indicates whether any of tiles are hit.
-            hit_index : int
+            hit_index : Optional[int]
                 index of tile being hit.
 
         Args:
@@ -48,23 +48,26 @@ class GameClientData:
         string_params: list[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['c', '(is_hit)', '(hit_index)'] -> 0번째에 들어있는
 
         is_hit = eval(string_params[0])
-        hit_index = int(string_params[1]) if string_params[1].isdigit() else None
+        hit_index = int(string_params[1]) if len(string_params) == 2 and string_params[1].isdigit() else None
 
         return cls(
             is_hit,
-            hit_index
+            hit_index,
+            player=player
         )
 
     def __init__(
             self,
-            is_hit: bool,
-            hit_index: int
+            isHit: bool,
+            hitIndex: int,
+            player=None
     ):
-        self.is_hit: bool = is_hit
-        self.hit_index: int = hit_index
+        self.player = player
+        self.isHit: bool = isHit
+        self.hitIndex: int = hitIndex
 
     def serialize(self) -> str:
-        return DATA_SPLIT_CHAR.join((self.prefix, self.is_hit, self.hit_index))
+        return DATA_SPLIT_CHAR.join((self.prefix, self.isHit, self.hitIndex))
 
 
 class GameServerData:
@@ -78,7 +81,7 @@ class GameServerData:
     # Class Constant
     prefix: Final[ClassVar[str]] = 's'
 
-    map_data: list[list[int]]
+    mapData: list[int]
 
     @classmethod
     def deserialize(cls, data: str) -> GameServerData:
@@ -107,28 +110,26 @@ class GameServerData:
         data_args: list[str] = data.split(DATA_SPLIT_CHAR)[1:]     # ['s', '(map_data)'] -> ignore server data prefix(s) in index 0.
 
         # parse map_data
-        raw_map_string = data_args[0]
-        map_data: list[list[int]] = []
-        for i in range(0, 8, step=3):
-            map_data.append([
-                int(raw_map_string[i]),
-                int(raw_map_string[i+1]),
-                int(raw_map_string[i+2])
-            ])
+        rawMapStr = data_args[0]
+        mapData: list[int] = list(map(int, rawMapStr))
 
-        return cls(
-            map_data
-        )
+        return cls(mapData)
 
     def __init__(
             self,
-            map_data: list[list[int]]
+            mapData: list[int]
     ):
-        self.map_data = map_data
+        self.mapData = mapData
 
     def serialize(self):
         # chain(iter[iter]) -> exhaust first iterable, then exhaust second iterable,
         # and keep going until the last iterable is exhausted.
         # chain(self.map_data) = [0, 1, 2] -> [3, 4, 5] -> [6, 7, 8]
-        return self.prefix + DATA_SPLIT_CHAR + DATA_SPLIT_CHAR.join(map(str, chain(self.map_data)))
+        return self.prefix + DATA_SPLIT_CHAR + DATA_SPLIT_CHAR.join(map(str, self.mapData))
+
+    # Presets
+    @classmethod
+    def connectedNotification(cls, player_num: int):
+        return cls(mapData=[player_num]*9)  # Blink client's pad with color based on player number
+
 
